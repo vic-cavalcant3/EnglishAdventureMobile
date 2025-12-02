@@ -28,7 +28,8 @@ const app = express();
 const PORT = 3000;
 
 // SEU IP - use este no React Native
-const LOCAL_IP = '192.168.0.189';
+const LOCAL_IP = '10.136.23.59';
+
 
 // Middleware
 app.use(cors({
@@ -836,40 +837,40 @@ app.post('/pratica/gerar-questoes', (req, res) => {
   const questoes = {
     // SPEAKING + AFIRMATIVA
     'speaking-afirmativa': [
-      { id: 1, pergunta: 'Repita: "I am a student"', resposta: 'I am a student', tipo: 'audio' },
-      { id: 2, pergunta: 'Repita: "You are my friend"', resposta: 'You are my friend', tipo: 'audio' },
-      { id: 3, pergunta: 'Repita: "She is happy"', resposta: 'She is happy', tipo: 'audio' },
-      { id: 4, pergunta: 'Repita: "We are here"', resposta: 'We are here', tipo: 'audio' },
-      { id: 5, pergunta: 'Repita: "They are teachers"', resposta: 'They are teachers', tipo: 'audio' }
+      { id: 1, pergunta: 'Repita: "Loki is ready."', resposta: 'Loki is ready.', tipo: 'audio' },
+      { id: 2, pergunta: 'Repita: "You are sad"', resposta: 'You are sad', tipo: 'audio' },
+      { id: 3, pergunta: 'Repita: "They are worry"', resposta: 'They are worry', tipo: 'audio' },
+      { id: 4, pergunta: 'Repita: "We are vikings"', resposta: 'We are vikings', tipo: 'audio' },
+      { id: 5, pergunta: 'Repita: "Fyr is sad"', resposta: 'Fyr is sad', tipo: 'audio' }
     ],
     // SPEAKING + INTERROGATIVA
     'speaking-interrogativa': [
-      { id: 1, pergunta: 'Repita: "Are you ready?"', resposta: 'Are you ready?', tipo: 'audio' },
-      { id: 2, pergunta: 'Repita: "Is she your sister?"', resposta: 'Is she your sister?', tipo: 'audio' },
-      { id: 3, pergunta: 'Repita: "Are we late?"', resposta: 'Are we late?', tipo: 'audio' },
-      { id: 4, pergunta: 'Repita: "Is he a doctor?"', resposta: 'Is he a doctor?', tipo: 'audio' },
-      { id: 5, pergunta: 'Repita: "Are they students?"', resposta: 'Are they students?', tipo: 'audio' }
+      { id: 1, pergunta: 'Repita: "Is Loki ready?"', resposta: 'Is Loki ready?', tipo: 'audio' },
+      { id: 2, pergunta: 'Repita: "Are you sad?"', resposta: 'Are you sad?', tipo: 'audio' },
+      { id: 3, pergunta: 'Repita: "Are they worry?"', resposta: 'Are they worry?', tipo: 'audio' },
+      { id: 4, pergunta: 'Repita: "Are we vikings?"', resposta: 'Are we vikings?', tipo: 'audio' },
+      { id: 5, pergunta: 'Repita: "Is Fyr sad?"', resposta: 'Is Fyr sad?', tipo: 'audio' }
     ],
     // SPEAKING + NEGATIVA
     'speaking-negativa': [
-      { id: 1, pergunta: 'Repita: "I am not tired"', resposta: 'I am not tired', tipo: 'audio' },
-      { id: 2, pergunta: 'Repita: "She is not here"', resposta: 'She is not here', tipo: 'audio' },
-      { id: 3, pergunta: 'Repita: "We are not ready"', resposta: 'We are not ready', tipo: 'audio' },
-      { id: 4, pergunta: 'Repita: "They are not late"', resposta: 'They are not late', tipo: 'audio' },
-      { id: 5, pergunta: 'Repita: "He is not angry"', resposta: 'He is not angry', tipo: 'audio' }
+      { id: 1, pergunta: 'Repita: "Loki is not ready."', resposta: 'Pronuncie', tipo: 'audio' },
+      { id: 2, pergunta: 'Repita: "You are not sad"', resposta: 'Pronuncie', tipo: 'audio' },
+      { id: 3, pergunta: 'Repita: "They are not worry."', resposta: 'Pronuncie', tipo: 'audio' },
+      { id: 4, pergunta: 'Repita: "We are not vikings."', resposta: 'Pronuncie', tipo: 'audio' },
+      { id: 5, pergunta: 'Repita: "Fyr is not sad"', resposta: 'Pronuncie', tipo: 'audio' }
     ],
     
     // READING + AFIRMATIVA
     'reading-afirmativa': [
-      { id: 1, texto: 'I am happy', pergunta: 'Como você está?', opcoes: ['Happy', 'Sad', 'Angry'], resposta: 'Happy' },
-      { id: 2, texto: 'She is a teacher', pergunta: 'Qual é a profissão dela?', opcoes: ['Teacher', 'Student', 'Doctor'], resposta: 'Teacher' },
-      { id: 3, texto: 'We are friends', pergunta: 'Qual é a relação?', opcoes: ['Friends', 'Family', 'Strangers'], resposta: 'Friends' },
-      { id: 4, texto: 'He is tall', pergunta: 'Como ele é?', opcoes: ['Tall', 'Short', 'Medium'], resposta: 'Tall' },
-      { id: 5, texto: 'They are students', pergunta: 'O que eles são?', opcoes: ['Students', 'Teachers', 'Workers'], resposta: 'Students' }
+      { id: 1, texto: ' Loki      ready', pergunta: ' Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Is' },
+      { id: 2, texto: ' You       sad', pergunta: 'Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
+      { id: 3, texto: ' They      worry?', pergunta: 'Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
+      { id: 4, texto: ' We        vikings?', pergunta: ' Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
+      { id: 5, texto: ' Fyr       sad?', pergunta: 'Responda', opcoes: ['Is', 'Are', 'An'], resposta: 'Is' }
     ],
     // READING + INTERROGATIVA
     'reading-interrogativa': [
-      { id: 1, texto: 'Are you okay?', pergunta: 'O que está sendo perguntado?', opcoes: ['Se está bem', 'Se está cansado', 'Se está feliz'], resposta: 'Se está bem' },
+      { id: 1, texto: '    Loki ready?', pergunta: 'Responda', opcoes: ['Se está bem', 'Se está cansado', 'Se está feliz'], resposta: 'Se está bem' },
       { id: 2, texto: 'Is she your sister?', pergunta: 'O que está sendo perguntado?', opcoes: ['Se é irmã', 'Se é mãe', 'Se é amiga'], resposta: 'Se é irmã' },
       { id: 3, texto: 'Are they at home?', pergunta: 'Onde estão?', opcoes: ['Em casa', 'Na escola', 'No trabalho'], resposta: 'Em casa' },
       { id: 4, texto: 'Is he a doctor?', pergunta: 'Qual profissão?', opcoes: ['Doctor', 'Teacher', 'Engineer'], resposta: 'Doctor' },

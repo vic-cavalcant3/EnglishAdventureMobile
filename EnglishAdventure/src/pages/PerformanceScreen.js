@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.0.189:3000';
+const API_URL = 'http://10.136.23.59:3000';
 
 export default function PerformanceScreen({ navigation }) {
   const [userData, setUserData] = useState(null);

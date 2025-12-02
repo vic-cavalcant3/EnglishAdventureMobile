@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-const API_URL = 'http://192.168.0.189:3000'; // SEU IP
+const API_URL = 'http://10.136.23.59:3000'; // SEU IP
 
 export default function RegisterScreen({ navigation }) {
   const [nome, setNome] = useState('');

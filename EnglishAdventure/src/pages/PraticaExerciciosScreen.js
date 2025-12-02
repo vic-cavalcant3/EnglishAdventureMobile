@@ -17,7 +17,7 @@ import {
   stopAllAudio 
 } from '../utils/audioUtils';
 
-const API_URL = 'http://192.168.0.189:3000';
+const API_URL = 'http://10.136.23.59:3000';
 
 export default function PraticaExerciciosScreen({ route, navigation }) {
   const { userId, userName } = route.params;
