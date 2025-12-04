@@ -5,7 +5,8 @@ import {
   TouchableOpacity, 
   StyleSheet,
   ImageBackground,
-  Image 
+  Image,
+  SafeAreaView
 } from 'react-native';
 import { StatusBar } from "expo-status-bar";
 import { Dimensions } from 'react-native';
@@ -18,13 +19,16 @@ export default function WelcomeScreen() {
   const [showButtons, setShowButtons] = useState(false);
   const [sound, setSound] = useState();
   const navigation = useNavigation();
+  
+  // Estado para dimensões dinâmicas
+  const [layout, setLayout] = useState({ width, height });
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowButtons(true);
     }, 2000);
 
-    // ✅ Configurar modo de áudio
+    // Configurar modo de áudio
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
@@ -33,24 +37,26 @@ export default function WelcomeScreen() {
 
     return () => {
       clearTimeout(timer);
-      // Limpar som ao desmontar o componente
       if (sound) {
         sound.unloadAsync();
       }
     };
   }, [sound]);
 
-  // 🔊 FUNÇÃO PARA TOCAR SOM
+  const handleLayout = (event) => {
+    const { width, height } = event.nativeEvent.layout;
+    setLayout({ width, height });
+  };
+
+  // Função para tocar som
   const playSound = async () => {
     try {
-      console.log('🔊 Tocando som...');
       const { sound } = await Audio.Sound.createAsync(
         require('../../assets/sound/botao.mp3')
       );
       setSound(sound);
       await sound.playAsync();
       
-      // Descarregar o som após tocar (opcional)
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) {
           sound.unloadAsync();
@@ -62,71 +68,90 @@ export default function WelcomeScreen() {
   };
 
   const handleLogin = async () => {
-    await playSound(); // 🔊 Tocar som
-    console.log('Login pressed');
-    
-    // Pequeno delay para o som tocar antes de navegar
+    await playSound();
     setTimeout(() => {
       navigation.navigate('Login');
     }, 150);
   };
 
   const handleRegister = async () => {
-    await playSound(); // 🔊 Tocar som
-    console.log('Register pressed');
-    
-    // Pequeno delay para o som tocar antes de navegar
+    await playSound();
     setTimeout(() => {
       navigation.navigate('Cadastro');
     }, 150);
   };
 
-  return (
-    <View style={styles.fullScreen}>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
-      <ImageBackground 
-        source={require('../../assets/welcome-bg.png')}
-        style={[styles.background, { width, height }]}
-        resizeMode="cover"
-      >
-        <View style={styles.content}>
-          {/* Header com a imagem do título */}
-          <View style={styles.header}>
-            <Image 
-              source={require('../../assets/title.png')}
-              style={styles.titleImage} 
-              resizeMode="contain"
-            />
-          </View>
+  // Calcular dimensões responsivas
+  const titleWidth = Math.min(360, layout.width * 0.9);
+  const titleHeight = titleWidth * (200/360); // Mantém proporção
+  
+  const buttonWidth = Math.min(layout.width * 0.6, 300);
 
-          {showButtons && (
-            <View style={styles.buttonsContainer}>
-              <TouchableOpacity 
-                style={styles.button}
-                onPress={handleLogin}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.buttonText}>Login</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.button, styles.registerButton]}
-                onPress={handleRegister}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.buttonText, styles.registerButtonText]}>
-                  Cadastrar
-                </Text>
-              </TouchableOpacity>
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      
+      <View style={styles.fullScreen} onLayout={handleLayout}>
+        <ImageBackground 
+          source={require('../../assets/welcome-bg.png')}
+          style={[styles.background, { width: layout.width, height: layout.height }]}
+          resizeMode="cover"
+        >
+          <View style={styles.container}>
+            {/* Header com a imagem do título */}
+            <View style={styles.header}>
+              <Image 
+                source={require('../../assets/title.png')}
+                style={[
+                  styles.titleImage, 
+                  { 
+                    width: titleWidth,
+                    height: titleHeight,
+                    maxWidth: 400,
+                    maxHeight: 220
+                  }
+                ]} 
+                resizeMode="contain"
+              />
             </View>
-          )}
-        </View>
-      </ImageBackground>
-    </View>
+
+            {showButtons && (
+              <View style={styles.buttonsContainer}>
+                <TouchableOpacity 
+                  style={[styles.button, { width: buttonWidth }]}
+                  onPress={handleLogin}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.buttonText}>Login</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[
+                    styles.button, 
+                    styles.registerButton,
+                    { width: buttonWidth }
+                  ]}
+                  onPress={handleRegister}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.buttonText, styles.registerButtonText]}>
+                    Cadastrar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </ImageBackground>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000', // Cor de fallback caso a imagem não carregue
+  },
   fullScreen: {
     flex: 1,
   },
@@ -137,7 +162,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  content: {
+  container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -145,23 +170,22 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 500,
-    marginRight: 40,
+    justifyContent: 'center',
+    flex: 1,
+    width: '100%',
+    marginRight: 60,
+    marginBottom: 280, // Removido o marginBottom fixo
   },
   titleImage: {
-    marginRight: 10,
-    marginBottom: 20,
-    width: 360,
-    height: 200,
+    marginBottom: 10,
   },
   buttonsContainer: {
     width: '100%',
     alignItems: 'center',
-    position: 'absolute',
-    bottom: 120,
+    paddingBottom: 40, // Padding bottom responsivo
+    marginTop: 'auto', // Empurra para baixo
   },
   button: {
-    width: '60%',
     height: 50,
     backgroundColor: '#F8E3A4',
     borderRadius: 15,
@@ -176,6 +200,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    minWidth: 200,
   },
   registerButton: {
     backgroundColor: '#A67649',
@@ -184,6 +209,7 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 23,
     fontWeight: '600',
+    textAlign: 'center',
   },
   registerButtonText: {
     color: '#F8E3A4',

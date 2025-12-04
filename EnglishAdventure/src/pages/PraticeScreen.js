@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.136.23.59:3000';
+const API_URL = 'http://10.136.23.46:3000';
 
 export default function PraticarScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
@@ -60,8 +60,8 @@ export default function PraticarScreen({ navigation }) {
   const getBarColor = (type) => {
     const colors = {
       afirmativa: '#8B4513',
-      interrogativa: '#CD853F',
-      negativa: '#A0522D'
+      interrogativa: '#8B4513',
+      negativa: '#8B4513'
     };
     return colors[type] || '#999';
   };
@@ -172,7 +172,11 @@ export default function PraticarScreen({ navigation }) {
             <View style={styles.skillsContainer}>
               <View style={styles.skillCard}>
                 <View style={styles.skillIcon}>
-                  <Text style={styles.skillEmoji}>🎤</Text>
+                 <Image 
+                             source={require('../../assets/speaking.png')}
+                             style={styles.iconhability}
+                             resizeMode="contain"
+                           />
                 </View>
                 <Text style={styles.skillLabel}>Speaking</Text>
                 <Text style={styles.skillScore}>
@@ -182,7 +186,11 @@ export default function PraticarScreen({ navigation }) {
 
               <View style={styles.skillCard}>
                 <View style={styles.skillIcon}>
-                  <Text style={styles.skillEmoji}>📖</Text>
+                       <Image 
+                             source={require('../../assets/reading.png')}
+                             style={styles.iconhability}
+                             resizeMode="contain"
+                        />
                 </View>
                 <Text style={styles.skillLabel}>Reading</Text>
                 <Text style={styles.skillScore}>
@@ -192,7 +200,12 @@ export default function PraticarScreen({ navigation }) {
 
               <View style={styles.skillCard}>
                 <View style={styles.skillIcon}>
-                  <Text style={styles.skillEmoji}>🎧</Text>
+                          <Image 
+                             source={require('../../assets/listening.png')}
+                             style={styles.iconhability}
+                             resizeMode="contain"
+                           />                
+                           
                 </View>
                 <Text style={styles.skillLabel}>Listening</Text>
                 <Text style={styles.skillScore}>
@@ -291,7 +304,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   infoCard: {
-    backgroundColor: '#FFF5E6',
+    backgroundColor: '#FFE6E5',
     borderRadius: 15,
     padding: 20,
     marginBottom: 25,
@@ -327,7 +340,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#8B4513',
+    color: '#000',
   },
   progressBar: {
     height: 8,
@@ -347,7 +360,7 @@ const styles = StyleSheet.create({
   },
   skillCard: {
     flex: 1,
-    backgroundColor: '#654321',
+    backgroundColor: '#906a47ff',
     borderRadius: 15,
     padding: 15,
     alignItems: 'center',
@@ -357,10 +370,15 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#8B6340',
+    backgroundColor: '#FFE6E5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
+  },
+
+  iconhability: {
+    width: 30,
+    height: 30,
   },
   skillEmoji: {
     fontSize: 24,
@@ -368,13 +386,13 @@ const styles = StyleSheet.create({
   skillLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#EAD6B5',
     marginBottom: 5,
   },
   skillScore: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFD700',
+    fontWeight: '400',
+    color: '#EAD6B5',
   },
   motivationText: {
     fontSize: 15,
@@ -384,16 +402,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   practiceButton: {
-    backgroundColor: '#8B4513',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#000',
     borderRadius: 25,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    paddingLeft: 145,
   },
+
   practiceButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+   fontSize: 15,
+    fontWeight: '700',
+    color: '#000',
   },
   bottomNav: {
     flexDirection: 'row',

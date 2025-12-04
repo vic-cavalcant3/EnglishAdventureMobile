@@ -12,19 +12,21 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.136.23.59:3000';
+const API_URL = 'http://10.136.23.46:3000';
 
 export default function ProfileScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
   
   // Estados para edição
   const [editData, setEditData] = useState({
     nome: '',
     email: '',
-    senha: ''
+    senha: '',
+    telefone: ''
   });
 
   useEffect(() => {
@@ -33,18 +35,44 @@ export default function ProfileScreen({ navigation }) {
 
   const loadUserData = async () => {
     try {
+      setLoading(true);
+      
+      // Buscar ID do usuário do AsyncStorage
       const userJson = await AsyncStorage.getItem('userData');
-      if (userJson) {
-        const user = JSON.parse(userJson);
-        setUserData(user);
-        setEditData({
-          nome: user.nome || '',
-          email: user.email || '',
-          senha: user.senha || ''
+      if (!userJson) {
+        Alert.alert('Erro', 'Usuário não autenticado');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
         });
+        return;
+      }
+
+      const localUser = JSON.parse(userJson);
+      console.log('👤 Usuário local:', localUser);
+
+      // Buscar dados atualizados do banco
+      const response = await fetch(`${API_URL}/usuario/${localUser.id}`);
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('✅ Dados do banco carregados:', data.user);
+        
+        setUserData(data.user);
+        setEditData({
+          nome: data.user.nome || '',
+          email: data.user.email || '',
+          senha: '', // Não mostrar senha por segurança
+          telefone: data.user.telefone || ''
+        });
+
+        // Atualizar AsyncStorage com dados mais recentes
+        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      } else {
+        throw new Error(data.message || 'Erro ao carregar dados');
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados do usuário');
     } finally {
       setLoading(false);
@@ -53,22 +81,84 @@ export default function ProfileScreen({ navigation }) {
 
   const handleSaveProfile = async () => {
     try {
-      const updatedUser = {
-        ...userData,
-        nome: editData.nome,
-        email: editData.email,
-        senha: editData.senha
-      };
-      
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-      
-      setUserData(updatedUser);
-      setIsEditing(false);
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+      setSaving(true);
+
+      // Validações
+      if (!editData.nome.trim()) {
+        Alert.alert('Atenção', 'Nome não pode estar vazio');
+        return;
+      }
+
+      if (!editData.email.trim()) {
+        Alert.alert('Atenção', 'Email não pode estar vazio');
+        return;
+      }
+
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(editData.email)) {
+        Alert.alert('Atenção', 'Email inválido');
+        return;
+      }
+
+      // Se senha foi preenchida, validar
+      if (editData.senha && editData.senha.length < 6) {
+        Alert.alert('Atenção', 'Senha deve ter no mínimo 6 caracteres');
+        return;
+      }
+
+      console.log('💾 Salvando perfil...', editData);
+
+      // Enviar para o backend
+      const response = await fetch(`${API_URL}/usuario/${userData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: editData.nome,
+          email: editData.email,
+          senha: editData.senha || undefined, // Só envia se foi preenchida
+          telefone: editData.telefone
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('✅ Perfil atualizado com sucesso');
+
+        // Atualizar estado local
+        setUserData(data.user);
+        
+        // Atualizar AsyncStorage
+        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+
+        // Limpar campo de senha
+        setEditData({ ...editData, senha: '' });
+        
+        setIsEditing(false);
+        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+      } else {
+        throw new Error(data.message || 'Erro ao salvar');
+      }
     } catch (error) {
-      console.error('Erro ao salvar dados:', error);
-      Alert.alert('Erro', 'Não foi possível salvar os dados');
+      console.error('❌ Erro ao salvar dados:', error);
+      Alert.alert('Erro', error.message || 'Não foi possível salvar os dados');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    // Restaurar dados originais
+    setEditData({
+      nome: userData.nome || '',
+      email: userData.email || '',
+      senha: '',
+      telefone: userData.telefone || ''
+    });
+    setIsEditing(false);
   };
 
   const handleDeleteAccount = () => {
@@ -103,6 +193,7 @@ export default function ProfileScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#A67649" />
+        <Text style={styles.loadingText}>Carregando perfil...</Text>
       </View>
     );
   }
@@ -150,7 +241,7 @@ export default function ProfileScreen({ navigation }) {
                 value={editData.nome}
                 onChangeText={(text) => setEditData({ ...editData, nome: text })}
                 editable={isEditing}
-                placeholder="@nome"
+                placeholder="Seu nome"
                 placeholderTextColor="#999"
               />
               {isEditing && (
@@ -174,7 +265,7 @@ export default function ProfileScreen({ navigation }) {
                 value={editData.email}
                 onChangeText={(text) => setEditData({ ...editData, email: text })}
                 editable={isEditing}
-                placeholder="@email"
+                placeholder="seu@email.com"
                 placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -191,41 +282,48 @@ export default function ProfileScreen({ navigation }) {
             </View>
           </View>
 
+          
+
           {/* Senha */}
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Senha</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={editData.senha}
-                onChangeText={(text) => setEditData({ ...editData, senha: text })}
-                editable={isEditing}
-                placeholder="senha"
-                placeholderTextColor="#999"
-                secureTextEntry={!showPassword}
-              />
-              {!isEditing ? (
-                <TouchableOpacity 
-                  style={styles.eyeIconButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Image 
-                    source={showPassword ? require('../../assets/eye.png') : require('../../assets/eyeclose.png')}
-                    style={styles.eyeIcon}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.inputEditIcon}>
-                  <Image 
-                    source={require('../../assets/edit.png')}
-                    style={styles.editIcon}
-                    resizeMode="contain"
-                  />
-                </View>
-              )}
-            </View>
-          </View>
+          {/* Senha */}
+{/* Senha */}
+<View style={styles.fieldContainer}>
+  <Text style={styles.fieldLabelsenha}>
+    {isEditing ? 'Nova Senha (opcional)' : 'Senha'}
+  </Text>
+  <View style={styles.inputWrapper}>
+    <TextInput
+      style={[styles.input, !isEditing && styles.inputDisabled]}
+      value={isEditing ? editData.senha : '••••••••'}
+      onChangeText={(text) => setEditData({ ...editData, senha: text })}
+      editable={isEditing}
+      placeholder={isEditing ? "Deixe vazio para manter" : ""}
+      placeholderTextColor="#999"
+      secureTextEntry={isEditing ? !showPassword : false}
+    />
+    {isEditing && (
+      <>
+        <TouchableOpacity 
+          style={styles.eyeIconButton}
+          onPress={() => setShowPassword(!showPassword)}
+        >
+          <Image 
+            source={showPassword ? require('../../assets/eye.png') : require('../../assets/eyeclose.png')}
+            style={styles.eyeIcon}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <View style={styles.inputEditIcon}>
+          <Image 
+            source={require('../../assets/edit.png')}
+            style={styles.editIcon}
+            resizeMode="contain"
+          />
+        </View>
+      </>
+    )}
+  </View>
+</View>
         </View>
 
         {/* Action Buttons */}
@@ -243,12 +341,27 @@ export default function ProfileScreen({ navigation }) {
               />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity 
-              style={styles.saveButton}
-              onPress={handleSaveProfile}
-            >
-              <Text style={styles.saveButtonText}>Salvar dados</Text>
-            </TouchableOpacity>
+            <View style={styles.editingButtons}>
+              <TouchableOpacity 
+                style={styles.saveButton}
+                onPress={handleSaveProfile}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Salvar dados</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={handleCancelEdit}
+                disabled={saving}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           <TouchableOpacity 
@@ -305,6 +418,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
   },
   content: {
     flex: 1,
@@ -377,8 +495,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000000',
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 8,
   },
+
+  fieldLabelsenha : {
+    marginRight: '-28',
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '600',
+    marginBottom: 8,
+    width: '100%',
+  },
+
   inputWrapper: {
     width: '90%',
     position: 'relative',
@@ -399,7 +527,7 @@ const styles = StyleSheet.create({
   },
   inputEditIcon: {
     position: 'absolute',
-    right: 5,
+    right: 15,
     top: '50%',
     transform: [{ translateY: -14 }],
     width: 28,
@@ -417,7 +545,7 @@ const styles = StyleSheet.create({
   },
   eyeIconButton: {
     position: 'absolute',
-    right: 12,
+    right: 10,
     top: '40%',
     transform: [{ translateY: -12 }],
     padding: 5,
@@ -433,8 +561,8 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   editButton: {
-    height: 30,
-    width: '50%',
+    height: 50,
+    width: '90%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -445,14 +573,35 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   editButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#000000',
     fontWeight: '600',
     marginRight: 10,
   },
+  editingButtons: {
+    width: '90%',
+    marginBottom: 15,
+  },
   saveButton: {
-    height: 30,
-    width: '50%',
+    height: 50,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    borderWidth: 1.5,
+    borderColor: '#2E7D32',
+    borderRadius: 25,
+    marginBottom: 10,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  cancelButton: {
+    height: 50,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -460,9 +609,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#000000',
     borderRadius: 25,
-    marginBottom: 15,
   },
-  saveButtonText: {
+  cancelButtonText: {
     fontSize: 16,
     color: '#000',
     fontWeight: '600',
@@ -483,7 +631,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#CC0000',
     fontWeight: '600',
-    marginRight: 158,
+    marginRight: 10,
   },
   buttonIcon: {
     width: 20,

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.136.23.59:3000';
+const API_URL = 'http://10.136.23.46:3000';
 
 export default function PerformanceScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
@@ -57,17 +57,23 @@ export default function PerformanceScreen({ navigation }) {
     }
   };
 
-  // Renderizar estrelas
-  // Renderizar estrelas com efeito curvado
+  const [isReady, setIsReady] = useState(false);
+
+useEffect(() => {
+  loadData();
+  // Forçar re-renderização após um pequeno delay
+  setTimeout(() => setIsReady(true), 100);
+}, []);
+
+// No renderStars, adicione a key para forçar re-render
 const renderStars = (quantidade) => {
   return (
     <View style={styles.starsContainer}>
       {[1, 2, 3].map((star, index) => (
         <Text 
-          key={star} 
+          key={`${star}-${isReady}`} // Força re-render quando isReady muda
           style={[
             styles.starIcon,
-            styles.starTransform,
             index === 0 && styles.starFirst,
             index === 1 && styles.starMiddle,
             index === 2 && styles.starLast,
@@ -167,7 +173,7 @@ const renderStars = (quantidade) => {
           </Text>
           <TouchableOpacity 
             style={styles.reviewButton}
-            onPress={() => navigation.navigate('Praticar')}
+            onPress={() => navigation.navigate('Pratice')}
           >
             <Text style={styles.reviewButtonText}>Revisar</Text>
           </TouchableOpacity>
@@ -259,7 +265,7 @@ const styles = StyleSheet.create({
   },
   xpBarFill: {
     height: '100%',
-    backgroundColor: '#A67649',
+    backgroundColor: '#382416',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -292,7 +298,7 @@ const styles = StyleSheet.create({
   xpPercentText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#A67649',
+    color: '#382416',
   },
   sectionTitle: {
     fontSize: 18,

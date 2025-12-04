@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.136.23.59:3000';
+const API_URL = 'http://10.136.23.46:3000';
 
 export default function HomeScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
 
   holeImage: {
     bottom: -25,
-    left: 73,
+    left: 89,
     position: 'absolute',
   },
   homeImage: {

@@ -28,7 +28,8 @@ const app = express();
 const PORT = 3000;
 
 // SEU IP - use este no React Native
-const LOCAL_IP = '10.136.23.59';
+const LOCAL_IP = '10.136.23.46';
+
 
 
 // Middleware
@@ -164,6 +165,241 @@ app.post('/login', (req, res) => {
       }
     });
   });
+});
+
+
+// ADICIONE ESTA ROTA NO SEU server.js (após a rota de login)
+
+// ROTA PARA BUSCAR DADOS COMPLETOS DO USUÁRIO (COM SENHA PARA EDIÇÃO)
+app.get('/usuario/:usuarioId', (req, res) => {
+  const { usuarioId } = req.params;
+  
+  console.log('👤 Buscando dados do usuário:', usuarioId);
+  
+  const query = 'SELECT id, nome, email, senha, telefone FROM usuarios WHERE id = ?';
+  
+  req.dbConnection.query(query, [usuarioId], async (err, results) => {
+    if (err) {
+      console.error('❌ Erro ao buscar usuário:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar dados do usuário'
+      });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
+    }
+    
+    const user = results[0];
+    
+    console.log('✅ Dados do usuário carregados com sucesso');
+    
+    // NOTA: Senha criptografada será enviada para permitir edição
+    // O app mostrará como ••••••• até entrar em modo de edição
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        senhaHash: user.senha, // Hash criptografado (não será exibido)
+        telefone: user.telefone
+      }
+    });
+  });
+});
+
+// ROTA PARA DESCRIPTOGRAFAR SENHA (apenas para edição)
+app.post('/usuario/:usuarioId/descriptografar-senha', (req, res) => {
+  const { usuarioId } = req.params;
+  const { senhaHash } = req.body;
+  
+  console.log('🔓 Solicitação para ver senha para edição:', usuarioId);
+  
+  // Por questões de segurança, não podemos descriptografar bcrypt
+  // Mas podemos retornar uma flag indicando que o usuário pode definir nova senha
+  
+  const query = 'SELECT senha FROM usuarios WHERE id = ?';
+  
+  req.dbConnection.query(query, [usuarioId], (err, results) => {
+    if (err) {
+      console.error('❌ Erro ao buscar senha:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar senha'
+      });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
+    }
+    
+    // IMPORTANTE: Bcrypt é one-way, não pode ser revertido
+    // Retornamos uma mensagem para o usuário redefinir
+    res.json({
+      success: true,
+      message: 'Por segurança, defina uma nova senha',
+      canDecrypt: false
+    });
+  });
+});
+
+// ROTA PARA ATUALIZAR PERFIL DO USUÁRIO
+app.put('/usuario/:usuarioId', async (req, res) => {
+  const { usuarioId } = req.params;
+  const { nome, email, senha, telefone } = req.body;
+  
+  console.log('✏️ Atualizando perfil do usuário:', usuarioId);
+  
+  try {
+    // Verificar se email já existe em outro usuário
+    const checkEmailQuery = 'SELECT id FROM usuarios WHERE email = ? AND id != ?';
+    
+    req.dbConnection.query(checkEmailQuery, [email, usuarioId], async (err, results) => {
+      if (err) {
+        console.error('❌ Erro ao verificar email:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao verificar email'
+        });
+      }
+      
+      if (results.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Este email já está em uso'
+        });
+      }
+      
+      // Preparar query de atualização
+      let updateQuery;
+      let params;
+      
+      if (senha && senha.trim() !== '') {
+        // Se senha foi fornecida, criptografar e atualizar
+        const bcrypt = require('bcrypt');
+        const senhaHash = await bcrypt.hash(senha, 10);
+        
+        updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, senha = ?, telefone = ? WHERE id = ?';
+        params = [nome, email, senhaHash, telefone || null, usuarioId];
+      } else {
+        // Se senha não foi fornecida, não atualizar
+        updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, telefone = ? WHERE id = ?';
+        params = [nome, email, telefone || null, usuarioId];
+      }
+      
+      req.dbConnection.query(updateQuery, params, (err, results) => {
+        if (err) {
+          console.error('❌ Erro ao atualizar perfil:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Erro ao atualizar perfil'
+          });
+        }
+        
+        console.log('✅ Perfil atualizado com sucesso');
+        
+        res.json({
+          success: true,
+          message: 'Perfil atualizado com sucesso',
+          user: {
+            id: usuarioId,
+            nome,
+            email,
+            telefone
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error('❌ Erro ao processar atualização:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar perfil'
+    });
+  }
+});
+// ROTA PARA ATUALIZAR PERFIL DO USUÁRIO
+app.put('/usuario/:usuarioId', async (req, res) => {
+  const { usuarioId } = req.params;
+  const { nome, email, senha, telefone } = req.body;
+  
+  console.log('✏️ Atualizando perfil do usuário:', usuarioId);
+  
+  try {
+    // Verificar se email já existe em outro usuário
+    const checkEmailQuery = 'SELECT id FROM usuarios WHERE email = ? AND id != ?';
+    
+    req.dbConnection.query(checkEmailQuery, [email, usuarioId], async (err, results) => {
+      if (err) {
+        console.error('❌ Erro ao verificar email:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao verificar email'
+        });
+      }
+      
+      if (results.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Este email já está em uso'
+        });
+      }
+      
+      // Preparar query de atualização
+      let updateQuery;
+      let params;
+      
+      if (senha && senha.trim() !== '') {
+        // Se senha foi fornecida, criptografar e atualizar
+        const bcrypt = require('bcrypt');
+        const senhaHash = await bcrypt.hash(senha, 10);
+        
+        updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, senha = ?, telefone = ? WHERE id = ?';
+        params = [nome, email, senhaHash, telefone || null, usuarioId];
+      } else {
+        // Se senha não foi fornecida, não atualizar
+        updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, telefone = ? WHERE id = ?';
+        params = [nome, email, telefone || null, usuarioId];
+      }
+      
+      req.dbConnection.query(updateQuery, params, (err, results) => {
+        if (err) {
+          console.error('❌ Erro ao atualizar perfil:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Erro ao atualizar perfil'
+          });
+        }
+        
+        console.log('✅ Perfil atualizado com sucesso');
+        
+        res.json({
+          success: true,
+          message: 'Perfil atualizado com sucesso',
+          user: {
+            id: usuarioId,
+            nome,
+            email,
+            telefone
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error('❌ Erro ao processar atualização:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar perfil'
+    });
+  }
 });
 
 // ROTA DE CADASTRO
@@ -730,7 +966,10 @@ app.get('/estatisticas-pratica/:usuarioId', (req, res) => {
 // ROTAS DE PRÁTICA - ADICIONE NO server.js
 // ==========================================
 
-// 1️⃣ ROTA: BUSCAR MAIOR DIFICULDADE DO USUÁRIO
+// ADICIONE ESTA ROTA ATUALIZADA NO SEU server.js
+// Substitua a rota existente /pratica/dificuldade/:usuarioId
+
+// 1️⃣ ROTA: BUSCAR MAIOR DIFICULDADE DO USUÁRIO - COM VERIFICAÇÃO DE DOMÍNIO
 app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
   const { usuarioId } = req.params;
   
@@ -760,6 +999,7 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
       });
     }
     
+    // ⭐ VERIFICAR SE USUÁRIO TEM DADOS
     if (results.length === 0 || !results[0].afirmativa_total) {
       return res.json({
         success: true,
@@ -775,26 +1015,49 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
     
     const data = results[0];
     
-    // Calcular taxa de erro por gramática
+    // ⭐ CALCULAR TAXA DE ERRO (COM THRESHOLD DE DOMÍNIO)
     const calcularErros = (total, acertos) => {
       if (total === 0) return 0;
-      return ((total - acertos) / total) * 100;
+      const percentualAcerto = (acertos / total) * 100;
+      return 100 - percentualAcerto;
     };
     
+    // Calcular erros de gramática
     const erros = {
       afirmativa: calcularErros(data.afirmativa_total, data.afirmativa_acertos),
       interrogativa: calcularErros(data.interrogativa_total, data.interrogativa_acertos),
       negativa: calcularErros(data.negativa_total, data.negativa_acertos)
     };
     
+    // Calcular erros de habilidade (EXCLUINDO SPEAKING)
     const errosHabilidade = {
-      speaking: calcularErros(data.speaking_total, data.speaking_acertos),
       reading: calcularErros(data.reading_total, data.reading_acertos),
       listening: calcularErros(data.listening_total, data.listening_acertos),
       writing: calcularErros(data.writing_total, data.writing_acertos)
     };
     
-    // Encontrar maior dificuldade
+    // ⭐ VERIFICAR SE USUÁRIO DOMINA TUDO (>= 80% de acerto em tudo)
+    const THRESHOLD_DOMINIO = 20; // Menos de 20% de erro = domínio
+    
+    const dominaGramatica = Object.values(erros).every(erro => erro < THRESHOLD_DOMINIO);
+    const dominaHabilidades = Object.values(errosHabilidade).every(erro => erro < THRESHOLD_DOMINIO);
+    
+    if (dominaGramatica && dominaHabilidades) {
+      console.log('🌟 Usuário domina todas as áreas!');
+      return res.json({
+        success: true,
+        data: {
+          nome: data.nome,
+          temDados: true,
+          dominaTudo: true,
+          gramatica: null,
+          habilidade: null,
+          mensagem: 'Parabéns! Você já domina todas as áreas!'
+        }
+      });
+    }
+    
+    // ⭐ ENCONTRAR MAIOR DIFICULDADE
     const maiorDificuldadeGramatica = Object.keys(erros).reduce((a, b) => 
       erros[a] > erros[b] ? a : b
     );
@@ -805,7 +1068,9 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
     
     console.log('✅ Maior dificuldade identificada:', {
       gramatica: maiorDificuldadeGramatica,
-      habilidade: maiorDificuldadeHabilidade
+      habilidade: maiorDificuldadeHabilidade,
+      erroGramatica: Math.round(erros[maiorDificuldadeGramatica]),
+      erroHabilidade: Math.round(errosHabilidade[maiorDificuldadeHabilidade])
     });
     
     res.json({
@@ -813,6 +1078,7 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
       data: {
         nome: data.nome,
         temDados: true,
+        dominaTudo: false,
         gramatica: maiorDificuldadeGramatica,
         habilidade: maiorDificuldadeHabilidade,
         percentualErroGramatica: Math.round(erros[maiorDificuldadeGramatica]),
@@ -835,104 +1101,82 @@ app.post('/pratica/gerar-questoes', (req, res) => {
   
   // Banco de questões por tipo
   const questoes = {
-    // SPEAKING + AFIRMATIVA
-    'speaking-afirmativa': [
-      { id: 1, pergunta: 'Repita: "Loki is ready."', resposta: 'Loki is ready.', tipo: 'audio' },
-      { id: 2, pergunta: 'Repita: "You are sad"', resposta: 'You are sad', tipo: 'audio' },
-      { id: 3, pergunta: 'Repita: "They are worry"', resposta: 'They are worry', tipo: 'audio' },
-      { id: 4, pergunta: 'Repita: "We are vikings"', resposta: 'We are vikings', tipo: 'audio' },
-      { id: 5, pergunta: 'Repita: "Fyr is sad"', resposta: 'Fyr is sad', tipo: 'audio' }
-    ],
-    // SPEAKING + INTERROGATIVA
-    'speaking-interrogativa': [
-      { id: 1, pergunta: 'Repita: "Is Loki ready?"', resposta: 'Is Loki ready?', tipo: 'audio' },
-      { id: 2, pergunta: 'Repita: "Are you sad?"', resposta: 'Are you sad?', tipo: 'audio' },
-      { id: 3, pergunta: 'Repita: "Are they worry?"', resposta: 'Are they worry?', tipo: 'audio' },
-      { id: 4, pergunta: 'Repita: "Are we vikings?"', resposta: 'Are we vikings?', tipo: 'audio' },
-      { id: 5, pergunta: 'Repita: "Is Fyr sad?"', resposta: 'Is Fyr sad?', tipo: 'audio' }
-    ],
-    // SPEAKING + NEGATIVA
-    'speaking-negativa': [
-      { id: 1, pergunta: 'Repita: "Loki is not ready."', resposta: 'Pronuncie', tipo: 'audio' },
-      { id: 2, pergunta: 'Repita: "You are not sad"', resposta: 'Pronuncie', tipo: 'audio' },
-      { id: 3, pergunta: 'Repita: "They are not worry."', resposta: 'Pronuncie', tipo: 'audio' },
-      { id: 4, pergunta: 'Repita: "We are not vikings."', resposta: 'Pronuncie', tipo: 'audio' },
-      { id: 5, pergunta: 'Repita: "Fyr is not sad"', resposta: 'Pronuncie', tipo: 'audio' }
-    ],
     
-    // READING + AFIRMATIVA
+    
+    // ==========================================
+    // READING
+    // ==========================================
     'reading-afirmativa': [
-      { id: 1, texto: ' Loki      ready', pergunta: ' Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Is' },
-      { id: 2, texto: ' You       sad', pergunta: 'Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
-      { id: 3, texto: ' They      worry?', pergunta: 'Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
-      { id: 4, texto: ' We        vikings?', pergunta: ' Responda', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
-      { id: 5, texto: ' Fyr       sad?', pergunta: 'Responda', opcoes: ['Is', 'Are', 'An'], resposta: 'Is' }
+      { id: 1, texto: 'Loki _____ ready', pergunta: 'Complete a frase', opcoes: ['is', 'are', 'am'], resposta: 'is' },
+      { id: 2, texto: 'You _____ sad', pergunta: 'Complete a frase', opcoes: ['is', 'are', 'am'], resposta: 'are' },
+      { id: 3, texto: 'They _____ worry', pergunta: 'Complete a frase', opcoes: ['is', 'are', 'am'], resposta: 'are' },
+      { id: 4, texto: 'We _____ vikings', pergunta: 'Complete a frase', opcoes: ['is', 'are', 'am'], resposta: 'are' },
+      { id: 5, texto: 'Fyr _____ sad', pergunta: 'Complete a frase', opcoes: ['is', 'are', 'am'], resposta: 'is' }
     ],
-    // READING + INTERROGATIVA
     'reading-interrogativa': [
-      { id: 1, texto: '    Loki ready?', pergunta: 'Responda', opcoes: ['Se está bem', 'Se está cansado', 'Se está feliz'], resposta: 'Se está bem' },
-      { id: 2, texto: 'Is she your sister?', pergunta: 'O que está sendo perguntado?', opcoes: ['Se é irmã', 'Se é mãe', 'Se é amiga'], resposta: 'Se é irmã' },
-      { id: 3, texto: 'Are they at home?', pergunta: 'Onde estão?', opcoes: ['Em casa', 'Na escola', 'No trabalho'], resposta: 'Em casa' },
-      { id: 4, texto: 'Is he a doctor?', pergunta: 'Qual profissão?', opcoes: ['Doctor', 'Teacher', 'Engineer'], resposta: 'Doctor' },
-      { id: 5, texto: 'Are we late?', pergunta: 'O que está sendo perguntado?', opcoes: ['Se estão atrasados', 'Se estão prontos', 'Se estão felizes'], resposta: 'Se estão atrasados' }
+      { id: 1, texto: '_____ Loki ready?', pergunta: 'Complete a pergunta', opcoes: ['Is', 'Are', 'Am'], resposta: 'Is' },
+      { id: 2, texto: '_____ you sad?', pergunta: 'Complete a pergunta', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
+      { id: 3, texto: '_____ they worry?', pergunta: 'Complete a pergunta', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
+      { id: 4, texto: '_____ we vikings?', pergunta: 'Complete a pergunta', opcoes: ['Is', 'Are', 'Am'], resposta: 'Are' },
+      { id: 5, texto: '_____ Fyr sad?', pergunta: 'Complete a pergunta', opcoes: ['Is', 'Are', 'Am'], resposta: 'Is' }
     ],
-    // READING + NEGATIVA
     'reading-negativa': [
-      { id: 1, texto: 'I am not sad', pergunta: 'Como você NÃO está?', opcoes: ['Sad', 'Happy', 'Angry'], resposta: 'Sad' },
-      { id: 2, texto: 'She is not here', pergunta: 'Onde ela NÃO está?', opcoes: ['Here', 'There', 'Home'], resposta: 'Here' },
-      { id: 3, texto: 'We are not ready', pergunta: 'Como NÃO estão?', opcoes: ['Ready', 'Tired', 'Happy'], resposta: 'Ready' },
-      { id: 4, texto: 'They are not students', pergunta: 'O que NÃO são?', opcoes: ['Students', 'Teachers', 'Workers'], resposta: 'Students' },
-      { id: 5, texto: 'He is not angry', pergunta: 'Como ele NÃO está?', opcoes: ['Angry', 'Happy', 'Sad'], resposta: 'Angry' }
+      { id: 1, texto: 'Loki _____ ready', pergunta: 'Complete com negativa', opcoes: ['is not', 'are not', 'am not'], resposta: 'is not' },
+      { id: 2, texto: 'You _____ sad', pergunta: 'Complete com negativa', opcoes: ['is not', 'are not', 'am not'], resposta: 'are not' },
+      { id: 3, texto: 'They _____ worry', pergunta: 'Complete com negativa', opcoes: ['is not', 'are not', 'am not'], resposta: 'are not' },
+      { id: 4, texto: 'We _____ vikings', pergunta: 'Complete com negativa', opcoes: ['is not', 'are not', 'am not'], resposta: 'are not' },
+      { id: 5, texto: 'Fyr _____ sad', pergunta: 'Complete com negativa', opcoes: ['is not', 'are not', 'am not'], resposta: 'is not' }
+    ],
+
+
+    // ==========================================
+    // SPEAKING
+    // ==========================================
+    'speaking-afirmativa': [
+      { id: 1, pergunta: 'Repita a frase', audio: 'Loki is ready', resposta: 'Loki is ready', tipo: 'speaking' },
+      { id: 2, pergunta: 'Repita a frase', audio: 'You are sad', resposta: 'You are sad', tipo: 'speaking' },
+      { id: 3, pergunta: 'Repita a frase', audio: 'They are worry', resposta: 'They are worry', tipo: 'speaking' },
+      { id: 4, pergunta: 'Repita a frase', audio: 'We are vikings', resposta: 'We are vikings', tipo: 'speaking' },
+      { id: 5, pergunta: 'Repita a frase', audio: 'Fyr is sad', resposta: 'Fyr is sad', tipo: 'speaking' }
+    ],
+    'speaking-interrogativa': [
+      { id: 1, pergunta: 'Repita a frase', audio: 'Is Loki ready?', resposta: 'Is Loki ready?', tipo: 'speaking' },
+      { id: 2, pergunta: 'Repita a frase', audio: 'Are you sad?', resposta: 'Are you sad?', tipo: 'speaking' },
+      { id: 3, pergunta: 'Repita a frase', audio: 'Are they worry?', resposta: 'Are they worry?', tipo: 'speaking' },
+      { id: 4, pergunta: 'Repita a frase', audio: 'Are we vikings?', resposta: 'Are we vikings?', tipo: 'speaking' },
+      { id: 5, pergunta: 'Repita a frase', audio: 'Is Fyr sad?', resposta: 'Is Fyr sad?', tipo: 'speaking' }
+    ],
+    'speaking-negativa': [
+      { id: 1, pergunta: 'Repita a frase', audio: 'Loki is not ready', resposta: 'Loki is not ready', tipo: 'speaking' },
+      { id: 2, pergunta: 'Repita a frase', audio: 'You are not sad', resposta: 'You are not sad', tipo: 'speaking' },
+      { id: 3, pergunta: 'Repita a frase', audio: 'They are not worry', resposta: 'They are not worry', tipo: 'speaking' },
+      { id: 4, pergunta: 'Repita a frase', audio: 'We are not vikings', resposta: 'We are not vikings', tipo: 'speaking' },
+      { id: 5, pergunta: 'Repita a frase', audio: 'Fyr is not sad', resposta: 'Fyr is not sad', tipo: 'speaking' }
     ],
     
-    // LISTENING + AFIRMATIVA
+    // ==========================================
+    // LISTENING - CORRIGIDO COM BASE NAS IMAGENS
+    // ==========================================
     'listening-afirmativa': [
-      { id: 1, audio: 'I am happy', pergunta: 'O que você ouviu?', opcoes: ['I am happy', 'I am sad', 'I am tired'], resposta: 'I am happy' },
-      { id: 2, audio: 'She is beautiful', pergunta: 'O que você ouviu?', opcoes: ['She is beautiful', 'She is ugly', 'She is tall'], resposta: 'She is beautiful' },
-      { id: 3, audio: 'We are ready', pergunta: 'O que você ouviu?', opcoes: ['We are ready', 'We are tired', 'We are late'], resposta: 'We are ready' },
-      { id: 4, audio: 'He is strong', pergunta: 'O que você ouviu?', opcoes: ['He is strong', 'He is weak', 'He is tall'], resposta: 'He is strong' },
-      { id: 5, audio: 'They are happy', pergunta: 'O que você ouviu?', opcoes: ['They are happy', 'They are sad', 'They are angry'], resposta: 'They are happy' }
+      { id: 1, audio: 'Loki is ready', pergunta: 'Escute', opcoes: ['A) Loki is ready', 'B) Loki are ready', 'C) Loki am ready'], resposta: 'A) Loki is ready', tipo: 'listening' },
+      { id: 2, audio: 'You are sad', pergunta: 'Escute', opcoes: ['A) You is sad', 'B) You are sad', 'C) You am sad'], resposta: 'B) You are sad', tipo: 'listening' },
+      { id: 3, audio: 'They are worry', pergunta: 'Escute', opcoes: ['A) They are worry', 'B) Are you worry', 'C) We are worry'], resposta: 'A) They are worry', tipo: 'listening' },
+      { id: 4, audio: 'They are vikings', pergunta: 'Escute', opcoes: ['A) They are vikings', 'B) He is viking', 'C) We are vikings'], resposta: 'A) They are vikings', tipo: 'listening' },
+      { id: 5, audio: 'She is sad', pergunta: 'Escute', opcoes: ['A) She is sad', 'B) Fyr is happy', 'C) Fyr is sad'], resposta: 'A) She is sad', tipo: 'listening' }
     ],
-    // LISTENING + INTERROGATIVA
     'listening-interrogativa': [
-      { id: 1, audio: 'Are you okay?', pergunta: 'O que você ouviu?', opcoes: ['Are you okay?', 'Are you ready?', 'Are you happy?'], resposta: 'Are you okay?' },
-      { id: 2, audio: 'Is she your friend?', pergunta: 'O que você ouviu?', opcoes: ['Is she your friend?', 'Is she your sister?', 'Is she your mother?'], resposta: 'Is she your friend?' },
-      { id: 3, audio: 'Are we late?', pergunta: 'O que você ouviu?', opcoes: ['Are we late?', 'Are we ready?', 'Are we tired?'], resposta: 'Are we late?' },
-      { id: 4, audio: 'Is he a teacher?', pergunta: 'O que você ouviu?', opcoes: ['Is he a teacher?', 'Is he a doctor?', 'Is he a student?'], resposta: 'Is he a teacher?' },
-      { id: 5, audio: 'Are they students?', pergunta: 'O que você ouviu?', opcoes: ['Are they students?', 'Are they teachers?', 'Are they doctors?'], resposta: 'Are they students?' }
+      { id: 1, audio: 'Is Loki ready?', pergunta: 'Escute', opcoes: ['A) Is Loki ready?', 'B) Are Loki ready?', 'C) Am I Loki ready?'], resposta: 'A) Is Loki ready?', tipo: 'listening' },
+      { id: 2, audio: 'Are they sad?', pergunta: 'Escute', opcoes: ['A) Are they sad?', 'B) Are you sad?', 'C) Are I sad?'], resposta: 'A) Are they sad?', tipo: 'listening' },
+      { id: 3, audio: 'Are they worry?', pergunta: 'Escute', opcoes: ['A) Are they worry?', 'B) Are you worry?', 'C) Are we worry?'], resposta: 'A) Are they worry?', tipo: 'listening' },
+      { id: 4, audio: 'Are they vikings?', pergunta: 'Escute', opcoes: ['A) Are they vikings?', 'B) Is he viking?', 'C) Are we vikings?'], resposta: 'A) Are they vikings?', tipo: 'listening' },
+      { id: 5, audio: 'Is she sad?', pergunta: 'Escute', opcoes: ['A) Is she sad?', 'B) Are they sad?', 'C) Am I sad?'], resposta: 'A) Is she sad?', tipo: 'listening' }
     ],
-    // LISTENING + NEGATIVA
     'listening-negativa': [
-      { id: 1, audio: 'I am not tired', pergunta: 'O que você ouviu?', opcoes: ['I am not tired', 'I am not happy', 'I am not sad'], resposta: 'I am not tired' },
-      { id: 2, audio: 'She is not here', pergunta: 'O que você ouviu?', opcoes: ['She is not here', 'She is not there', 'She is not ready'], resposta: 'She is not here' },
-      { id: 3, audio: 'We are not late', pergunta: 'O que você ouviu?', opcoes: ['We are not late', 'We are not ready', 'We are not tired'], resposta: 'We are not late' },
-      { id: 4, audio: 'They are not students', pergunta: 'O que você ouviu?', opcoes: ['They are not students', 'They are not teachers', 'They are not doctors'], resposta: 'They are not students' },
-      { id: 5, audio: 'He is not angry', pergunta: 'O que você ouviu?', opcoes: ['He is not angry', 'He is not happy', 'He is not sad'], resposta: 'He is not angry' }
-    ],
-    
-    // WRITING + AFIRMATIVA
-    'writing-afirmativa': [
-      { id: 1, pergunta: 'Complete: I ___ happy', resposta: 'am', dica: 'Use o verbo TO BE' },
-      { id: 2, pergunta: 'Complete: She ___ a teacher', resposta: 'is', dica: 'Use o verbo TO BE' },
-      { id: 3, pergunta: 'Complete: We ___ friends', resposta: 'are', dica: 'Use o verbo TO BE' },
-      { id: 4, pergunta: 'Complete: He ___ tall', resposta: 'is', dica: 'Use o verbo TO BE' },
-      { id: 5, pergunta: 'Complete: They ___ students', resposta: 'are', dica: 'Use o verbo TO BE' }
-    ],
-    // WRITING + INTERROGATIVA
-    'writing-interrogativa': [
-      { id: 1, pergunta: 'Complete: ___ you okay?', resposta: 'Are', dica: 'Comece com o verbo TO BE' },
-      { id: 2, pergunta: 'Complete: ___ she your sister?', resposta: 'Is', dica: 'Comece com o verbo TO BE' },
-      { id: 3, pergunta: 'Complete: ___ we late?', resposta: 'Are', dica: 'Comece com o verbo TO BE' },
-      { id: 4, pergunta: 'Complete: ___ he a doctor?', resposta: 'Is', dica: 'Comece com o verbo TO BE' },
-      { id: 5, pergunta: 'Complete: ___ they students?', resposta: 'Are', dica: 'Comece com o verbo TO BE' }
-    ],
-    // WRITING + NEGATIVA
-    'writing-negativa': [
-      { id: 1, pergunta: 'Complete: I ___ not tired', resposta: 'am', dica: 'Use o verbo TO BE' },
-      { id: 2, pergunta: 'Complete: She ___ not here', resposta: 'is', dica: 'Use o verbo TO BE' },
-      { id: 3, pergunta: 'Complete: We ___ not ready', resposta: 'are', dica: 'Use o verbo TO BE' },
-      { id: 4, pergunta: 'Complete: They ___ not students', resposta: 'are', dica: 'Use o verbo TO BE' },
-      { id: 5, pergunta: 'Complete: He ___ not angry', resposta: 'is', dica: 'Use o verbo TO BE' }
+      { id: 1, audio: 'Loki is not ready', pergunta: 'Escute', opcoes: ['A) Loki is not ready', 'B) Loki are not ready', 'C) Loki not am ready'], resposta: 'A) Loki is not ready', tipo: 'listening' },
+      { id: 2, audio: 'You are not sad', pergunta: 'Escute', opcoes: ['A) You is not sad', 'B) You are not sad', 'C) You not sad'], resposta: 'B) You are not sad', tipo: 'listening' },
+      { id: 3, audio: 'They are not worry', pergunta: 'Escute', opcoes: ['A) They are not worry', 'B) Are you not worry', 'C) We are not worry'], resposta: 'A) They are not worry', tipo: 'listening' },
+      { id: 4, audio: 'They are not vikings', pergunta: 'Escute', opcoes: ['A) They are not vikings', 'B) He is not viking', 'C) We are not vikings'], resposta: 'A) They are not vikings', tipo: 'listening' },
+      { id: 5, audio: 'She is not sad', pergunta: 'Escute', opcoes: ['A) She is not sad', 'B) Fyr is not happy', 'C) Fyr is not sad'], resposta: 'A) She is not sad', tipo: 'listening' }
     ]
   };
   
