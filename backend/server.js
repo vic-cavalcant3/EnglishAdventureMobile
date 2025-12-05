@@ -28,8 +28,8 @@ const app = express();
 const PORT = 3000;
 
 // SEU IP - use este no React Native
-const LOCAL_IP = '10.136.23.46';
-
+// const LOCAL_IP = '10.136.23.46'; //senai
+const LOCAL_IP = '192.168.0.189'; //casa
 
 
 // Middleware
@@ -251,156 +251,55 @@ app.post('/usuario/:usuarioId/descriptografar-senha', (req, res) => {
   });
 });
 
-// ROTA PARA ATUALIZAR PERFIL DO USUÁRIO
 app.put('/usuario/:usuarioId', async (req, res) => {
   const { usuarioId } = req.params;
   const { nome, email, senha, telefone } = req.body;
   
   console.log('✏️ Atualizando perfil do usuário:', usuarioId);
-  
+
   try {
-    // Verificar se email já existe em outro usuário
     const checkEmailQuery = 'SELECT id FROM usuarios WHERE email = ? AND id != ?';
-    
+
     req.dbConnection.query(checkEmailQuery, [email, usuarioId], async (err, results) => {
       if (err) {
-        console.error('❌ Erro ao verificar email:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Erro ao verificar email'
-        });
+        return res.status(500).json({ success: false, message: 'Erro ao verificar email' });
       }
-      
+
       if (results.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: 'Este email já está em uso'
-        });
+        return res.status(409).json({ success: false, message: 'Este email já está em uso' });
       }
-      
-      // Preparar query de atualização
+
       let updateQuery;
       let params;
-      
+
       if (senha && senha.trim() !== '') {
-        // Se senha foi fornecida, criptografar e atualizar
-        const bcrypt = require('bcrypt');
         const senhaHash = await bcrypt.hash(senha, 10);
-        
+
         updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, senha = ?, telefone = ? WHERE id = ?';
         params = [nome, email, senhaHash, telefone || null, usuarioId];
       } else {
-        // Se senha não foi fornecida, não atualizar
         updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, telefone = ? WHERE id = ?';
         params = [nome, email, telefone || null, usuarioId];
       }
-      
-      req.dbConnection.query(updateQuery, params, (err, results) => {
+
+      req.dbConnection.query(updateQuery, params, (err) => {
         if (err) {
-          console.error('❌ Erro ao atualizar perfil:', err);
-          return res.status(500).json({
-            success: false,
-            message: 'Erro ao atualizar perfil'
-          });
+          return res.status(500).json({ success: false, message: 'Erro ao atualizar perfil' });
         }
-        
-        console.log('✅ Perfil atualizado com sucesso');
-        
+
         res.json({
           success: true,
           message: 'Perfil atualizado com sucesso',
-          user: {
-            id: usuarioId,
-            nome,
-            email,
-            telefone
-          }
+          user: { id: usuarioId, nome, email, telefone }
         });
       });
     });
+
   } catch (error) {
-    console.error('❌ Erro ao processar atualização:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar perfil'
-    });
+    return res.status(500).json({ success: false, message: 'Erro ao atualizar perfil' });
   }
 });
-// ROTA PARA ATUALIZAR PERFIL DO USUÁRIO
-app.put('/usuario/:usuarioId', async (req, res) => {
-  const { usuarioId } = req.params;
-  const { nome, email, senha, telefone } = req.body;
-  
-  console.log('✏️ Atualizando perfil do usuário:', usuarioId);
-  
-  try {
-    // Verificar se email já existe em outro usuário
-    const checkEmailQuery = 'SELECT id FROM usuarios WHERE email = ? AND id != ?';
-    
-    req.dbConnection.query(checkEmailQuery, [email, usuarioId], async (err, results) => {
-      if (err) {
-        console.error('❌ Erro ao verificar email:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Erro ao verificar email'
-        });
-      }
-      
-      if (results.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: 'Este email já está em uso'
-        });
-      }
-      
-      // Preparar query de atualização
-      let updateQuery;
-      let params;
-      
-      if (senha && senha.trim() !== '') {
-        // Se senha foi fornecida, criptografar e atualizar
-        const bcrypt = require('bcrypt');
-        const senhaHash = await bcrypt.hash(senha, 10);
-        
-        updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, senha = ?, telefone = ? WHERE id = ?';
-        params = [nome, email, senhaHash, telefone || null, usuarioId];
-      } else {
-        // Se senha não foi fornecida, não atualizar
-        updateQuery = 'UPDATE usuarios SET nome = ?, email = ?, telefone = ? WHERE id = ?';
-        params = [nome, email, telefone || null, usuarioId];
-      }
-      
-      req.dbConnection.query(updateQuery, params, (err, results) => {
-        if (err) {
-          console.error('❌ Erro ao atualizar perfil:', err);
-          return res.status(500).json({
-            success: false,
-            message: 'Erro ao atualizar perfil'
-          });
-        }
-        
-        console.log('✅ Perfil atualizado com sucesso');
-        
-        res.json({
-          success: true,
-          message: 'Perfil atualizado com sucesso',
-          user: {
-            id: usuarioId,
-            nome,
-            email,
-            telefone
-          }
-        });
-      });
-    });
-  } catch (error) {
-    console.error('❌ Erro ao processar atualização:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar perfil'
-    });
-  }
-});
+
 
 // ROTA DE CADASTRO
 // ROTA DE CADASTRO - CRIPTOGRAFAR SENHA
@@ -969,7 +868,7 @@ app.get('/estatisticas-pratica/:usuarioId', (req, res) => {
 // ADICIONE ESTA ROTA ATUALIZADA NO SEU server.js
 // Substitua a rota existente /pratica/dificuldade/:usuarioId
 
-// 1️⃣ ROTA: BUSCAR MAIOR DIFICULDADE DO USUÁRIO - COM VERIFICAÇÃO DE DOMÍNIO
+// ROTA CORRIGIDA: BUSCAR MAIOR DIFICULDADE DO USUÁRIO
 app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
   const { usuarioId } = req.params;
   
@@ -999,12 +898,12 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
       });
     }
     
-    // ⭐ VERIFICAR SE USUÁRIO TEM DADOS
-    if (results.length === 0 || !results[0].afirmativa_total) {
+    // ⭐ VERIFICAR SE USUÁRIO EXISTE
+    if (results.length === 0) {
       return res.json({
         success: true,
         data: {
-          nome: results[0]?.nome || 'Aluno',
+          nome: 'Aluno',
           temDados: false,
           gramatica: 'afirmativa',
           habilidade: 'reading',
@@ -1015,9 +914,29 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
     
     const data = results[0];
     
-    // ⭐ CALCULAR TAXA DE ERRO (COM THRESHOLD DE DOMÍNIO)
+    // ⭐ VERIFICAR SE TEM DADOS (PELO MENOS 5 TENTATIVAS TOTAIS)
+    const totalTentativas = (data.afirmativa_total || 0) + 
+                           (data.interrogativa_total || 0) + 
+                           (data.negativa_total || 0);
+    
+    console.log('📊 Total de tentativas:', totalTentativas);
+    
+    if (totalTentativas < 5) {
+      return res.json({
+        success: true,
+        data: {
+          nome: data.nome,
+          temDados: false,
+          gramatica: 'afirmativa',
+          habilidade: 'reading',
+          mensagem: `Continue jogando! Você fez ${totalTentativas} de 5 tentativas necessárias.`
+        }
+      });
+    }
+    
+    // ⭐ CALCULAR TAXA DE ERRO
     const calcularErros = (total, acertos) => {
-      if (total === 0) return 0;
+      if (!total || total === 0) return 0;
       const percentualAcerto = (acertos / total) * 100;
       return 100 - percentualAcerto;
     };
@@ -1036,11 +955,13 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
       writing: calcularErros(data.writing_total, data.writing_acertos)
     };
     
-    // ⭐ VERIFICAR SE USUÁRIO DOMINA TUDO (>= 80% de acerto em tudo)
+    console.log('📊 Erros calculados:', { erros, errosHabilidade });
+    
+    // ⭐ VERIFICAR SE DOMINA TUDO (>= 80% de acerto em tudo)
     const THRESHOLD_DOMINIO = 20; // Menos de 20% de erro = domínio
     
-    const dominaGramatica = Object.values(erros).every(erro => erro < THRESHOLD_DOMINIO);
-    const dominaHabilidades = Object.values(errosHabilidade).every(erro => erro < THRESHOLD_DOMINIO);
+    const dominaGramatica = Object.values(erros).every(erro => erro < THRESHOLD_DOMINIO && erro > 0);
+    const dominaHabilidades = Object.values(errosHabilidade).every(erro => erro < THRESHOLD_DOMINIO && erro > 0);
     
     if (dominaGramatica && dominaHabilidades) {
       console.log('🌟 Usuário domina todas as áreas!');
@@ -1057,14 +978,30 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
       });
     }
     
-    // ⭐ ENCONTRAR MAIOR DIFICULDADE
-    const maiorDificuldadeGramatica = Object.keys(erros).reduce((a, b) => 
-      erros[a] > erros[b] ? a : b
-    );
+    // ⭐ ENCONTRAR MAIOR DIFICULDADE (COM VALIDAÇÃO)
+    const gramaticasComDados = Object.entries(erros).filter(([key, valor]) => valor > 0);
+    const habilidadesComDados = Object.entries(errosHabilidade).filter(([key, valor]) => valor > 0);
     
-    const maiorDificuldadeHabilidade = Object.keys(errosHabilidade).reduce((a, b) => 
-      errosHabilidade[a] > errosHabilidade[b] ? a : b
-    );
+    if (gramaticasComDados.length === 0 || habilidadesComDados.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          nome: data.nome,
+          temDados: false,
+          gramatica: 'afirmativa',
+          habilidade: 'reading',
+          mensagem: 'Continue jogando para identificarmos suas dificuldades!'
+        }
+      });
+    }
+    
+    const maiorDificuldadeGramatica = gramaticasComDados.reduce((a, b) => 
+      a[1] > b[1] ? a : b
+    )[0];
+    
+    const maiorDificuldadeHabilidade = habilidadesComDados.reduce((a, b) => 
+      a[1] > b[1] ? a : b
+    )[0];
     
     console.log('✅ Maior dificuldade identificada:', {
       gramatica: maiorDificuldadeGramatica,

@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -21,7 +21,13 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.viccavalcant3.EnglishAdventure"
+      "package": "com.viccavalcant3.EnglishAdventure",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE"
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/icon.png"
@@ -31,6 +37,18 @@
         "projectId": "8a1aa592-a36e-4263-b083-8e45068b4895"
       }
     },
-    "owner": "vic-cavalcant3"
+    "owner": "vic-cavalcant3",
+    "plugins": [
+      "expo-speech-recognition",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "networkSecurityConfig": "./android/app/src/main/res/xml/network_security_config.xml"
+          }
+        }
+      ]
+    ]
   }
 }

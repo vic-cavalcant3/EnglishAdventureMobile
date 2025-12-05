@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.136.23.46:3000';
+const API_URL = 'http://192.168.0.189:3000';
 
 export default function PraticarScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
@@ -67,12 +67,30 @@ export default function PraticarScreen({ navigation }) {
   };
 
   const handlePractice = () => {
-    // Navegar para tela de exercícios
+  console.log('🔵 === CLICOU EM PRATICAR ===');
+  console.log('👤 userData:', userData);
+  console.log('📍 userId:', userData?.id);
+  console.log('📛 userName:', userData?.nome);
+
+  if (!userData || !userData.id || !userData.nome) {
+    Alert.alert('Erro', 'Dados do usuário incompletos');
+    return;
+  }
+
+  try {
+    console.log('🚀 Navegando para PraticaExercicios...');
+    
     navigation.navigate('PraticaExercicios', {
       userId: userData.id,
       userName: userData.nome
     });
-  };
+
+    console.log('✅ Navegação chamada com sucesso');
+  } catch (error) {
+    console.error('❌ Erro na navegação:', error);
+    Alert.alert('Erro', 'Não foi possível abrir os exercícios');
+  }
+};
 
   if (loading) {
     return (
