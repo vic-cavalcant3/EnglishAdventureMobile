@@ -12,7 +12,7 @@ import {
 import * as Speech from 'expo-speech';
 import * as SpeechRecognition from 'expo-speech-recognition';
 
-const API_URL = 'http://192.168.0.189:3000';
+const API_URL = 'http://10.136.23.46:3000';
 
 export default function PraticaExerciciosScreen({ route, navigation }) {
   const { userId, userName } = route.params || {};

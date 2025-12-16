@@ -28,8 +28,8 @@ const app = express();
 const PORT = 3000;
 
 // SEU IP - use este no React Native
-// const LOCAL_IP = '10.136.23.46'; //senai
-const LOCAL_IP = '192.168.0.189'; //casa
+const LOCAL_IP = '10.136.23.46'; //senai
+// const LOCAL_IP = '192.168.0.189'; //casa
 
 
 // Middleware
