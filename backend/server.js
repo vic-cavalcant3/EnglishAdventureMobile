@@ -28,8 +28,8 @@ const app = express();
 const PORT = 3000;
 
 // SEU IP - use este no React Native
-const LOCAL_IP = '10.136.23.46'; //senai
-// const LOCAL_IP = '192.168.0.189'; //casa
+// const LOCAL_IP = '10.136.23.46'; //senai
+const LOCAL_IP = '192.168.0.125'; //casa
 
 
 // Middleware
@@ -1031,6 +1031,7 @@ app.get('/pratica/dificuldade/:usuarioId', (req, res) => {
 
 
 // 2️⃣ ROTA: GERAR QUESTÕES DE PRÁTICA
+// 2️⃣ ROTA: GERAR QUESTÕES DE PRÁTICA - COM WRITING ADICIONADO
 app.post('/pratica/gerar-questoes', (req, res) => {
   const { gramatica, habilidade } = req.body;
   
@@ -1038,7 +1039,6 @@ app.post('/pratica/gerar-questoes', (req, res) => {
   
   // Banco de questões por tipo
   const questoes = {
-    
     
     // ==========================================
     // READING
@@ -1092,7 +1092,7 @@ app.post('/pratica/gerar-questoes', (req, res) => {
     ],
     
     // ==========================================
-    // LISTENING - CORRIGIDO COM BASE NAS IMAGENS
+    // LISTENING
     // ==========================================
     'listening-afirmativa': [
       { id: 1, audio: 'Loki is ready', pergunta: 'Escute', opcoes: ['A) Loki is ready', 'B) Loki are ready', 'C) Loki am ready'], resposta: 'A) Loki is ready', tipo: 'listening' },
@@ -1114,18 +1114,27 @@ app.post('/pratica/gerar-questoes', (req, res) => {
       { id: 3, audio: 'They are not worry', pergunta: 'Escute', opcoes: ['A) They are not worry', 'B) Are you not worry', 'C) We are not worry'], resposta: 'A) They are not worry', tipo: 'listening' },
       { id: 4, audio: 'They are not vikings', pergunta: 'Escute', opcoes: ['A) They are not vikings', 'B) He is not viking', 'C) We are not vikings'], resposta: 'A) They are not vikings', tipo: 'listening' },
       { id: 5, audio: 'She is not sad', pergunta: 'Escute', opcoes: ['A) She is not sad', 'B) Fyr is not happy', 'C) Fyr is not sad'], resposta: 'A) She is not sad', tipo: 'listening' }
-    ]
+    ],
+
   };
   
   const chave = `${habilidade}-${gramatica}`;
   const questoesDisponiveis = questoes[chave] || [];
+  
+  if (questoesDisponiveis.length === 0) {
+    console.log(`❌ Nenhuma questão encontrada para: ${chave}`);
+    return res.status(404).json({
+      success: false,
+      message: `Questões não encontradas para ${habilidade} + ${gramatica}`
+    });
+  }
   
   // Embaralhar e pegar 5 questões
   const questoesSelecionadas = questoesDisponiveis
     .sort(() => Math.random() - 0.5)
     .slice(0, 5);
   
-  console.log(`✅ ${questoesSelecionadas.length} questões geradas`);
+  console.log(`✅ ${questoesSelecionadas.length} questões geradas para ${chave}`);
   
   res.json({
     success: true,

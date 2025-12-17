@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -12,7 +13,7 @@ import {
 import * as Speech from 'expo-speech';
 import * as SpeechRecognition from 'expo-speech-recognition';
 
-const API_URL = 'http://10.136.23.46:3000';
+const API_URL = 'http://192.168.0.125:3000';
 
 export default function PraticaExerciciosScreen({ route, navigation }) {
   const { userId, userName } = route.params || {};
@@ -111,6 +112,13 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
       if (mountedRef.current) {
         setTextoFalado(text);
         setGravando(false);
+        
+        // 🔥 VERIFICAR AUTOMATICAMENTE APÓS CAPTURAR A FALA
+        if (text.trim()) {
+          setTimeout(() => {
+            verificarRespostaFalada(text);
+          }, 500);
+        }
       }
     };
 
@@ -140,7 +148,7 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
       });
       listenersRef.current = [];
     };
-  }, [permissaoMic]);
+  }, [permissaoMic, questaoAtual]);
 
   const carregarDificuldades = async () => {
     try {
@@ -194,8 +202,8 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
           const nomeHabilidade = {
             reading: 'Leitura',
             listening: 'Escuta',
-            speaking: 'Fala',
-            writing: 'Escrita'
+            speaking: 'Fala'
+
           }[habilidade] || habilidade;
 
           const nomeGramatica = {
@@ -293,6 +301,18 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
       });
 
       setGravando(true);
+      
+      // 🔥 PARAR AUTOMATICAMENTE APÓS 5 SEGUNDOS
+      setTimeout(async () => {
+        if (mountedRef.current && gravando) {
+          try {
+            await SpeechRecognition.stopAsync();
+            setGravando(false);
+          } catch (e) {
+            console.log('Erro ao parar gravacao:', e);
+          }
+        }
+      }, 5000);
     } catch (error) {
       console.error('Erro ao iniciar gravacao:', error);
       Alert.alert('Erro', 'Nao foi possivel iniciar o reconhecimento de voz.');
@@ -337,29 +357,26 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
       const novosResultados = [...resultados, { questaoId: questao.id, acertou }];
       setResultados(novosResultados);
       
-      setTimeout(() => {
-        if (mountedRef.current) {
-          Alert.alert(
-            acertou ? 'Excelente!' : 'Quase la!',
-            acertou 
-              ? `Voce disse: "${textoReconhecido}"\n\nPerfeito! Continue assim!` 
-              : `Voce disse: "${textoReconhecido}"\n\nTente novamente: "${questao.resposta}"`,
-            [
-              {
-                text: acertou ? 'Proxima' : 'Tentar Novamente',
-                onPress: () => {
-                  if (acertou) {
-                    proximaQuestao(novosResultados);
-                  } else {
-                    setTextoFalado('');
-                    verificandoRef.current = false;
-                  }
-                }
+      // 🔥 MOSTRAR FEEDBACK IMEDIATO
+      Alert.alert(
+        acertou ? '✅ Excelente!' : '❌ Quase la!',
+        acertou 
+          ? `Voce disse: "${textoReconhecido}"\n\n🎉 Pronuncia perfeita! Continue assim!` 
+          : `Voce disse: "${textoReconhecido}"\n\n📢 Tente dizer: "${questao.resposta}"\n\n💡 Dica: Fale devagar e pronuncie cada palavra claramente`,
+        [
+          {
+            text: acertou ? '➡️ Proxima' : '🔄 Tentar Novamente',
+            onPress: () => {
+              if (acertou) {
+                proximaQuestao(novosResultados);
+              } else {
+                setTextoFalado('');
+                verificandoRef.current = false;
               }
-            ]
-          );
-        }
-      }, 300);
+            }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Erro ao verificar resposta falada:', error);
       verificandoRef.current = false;
@@ -578,29 +595,7 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.cardOpcao}
-            onPress={() => {
-              Alert.alert(
-                'Writing - Escrita',
-                'Escolha o tipo de frase:',
-                [
-                  { text: 'Afirmativa', onPress: () => iniciarPraticaComSelecao('writing', 'afirmativa') },
-                  { text: 'Interrogativa', onPress: () => iniciarPraticaComSelecao('writing', 'interrogativa') },
-                  { text: 'Negativa', onPress: () => iniciarPraticaComSelecao('writing', 'negativa') },
-                  { text: 'Cancelar', style: 'cancel' }
-                ]
-              );
-            }}
-          >
-            <View style={styles.iconContainer}>
-              <Text style={styles.iconText}>W</Text>
-            </View>
-            <View style={styles.opcaoTextos}>
-              <Text style={styles.opcaoTitulo}>Writing</Text>
-              <Text style={styles.opcaoDescricao}>Aprimore sua escrita</Text>
-            </View>
-          </TouchableOpacity>
+       
         </ScrollView>
 
         <View style={styles.bottomNav}>
@@ -665,7 +660,7 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
               [
                 { text: 'Cancelar', style: 'cancel' },
                 { 
-                  text: 'Sair', 
+                  text: 'Voltar ao Menu', 
                   style: 'destructive',
                   onPress: () => {
                     try {
@@ -715,12 +710,18 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
             </View>
 
             <View style={styles.micContainer}>
-              <Text style={styles.micLabel}>Toque no microfone e fale</Text>
+              <Text style={styles.micLabel}>🎤 Toque no microfone e fale claramente</Text>
               
               <TouchableOpacity 
                 style={[styles.micButton, gravando && styles.micButtonActive]}
-                onPress={iniciarGravacao}
-                disabled={gravando}
+                onPress={gravando ? async () => {
+                  try {
+                    await SpeechRecognition.stopAsync();
+                    setGravando(false);
+                  } catch (e) {
+                    console.log('Erro ao parar:', e);
+                  }
+                } : iniciarGravacao}
               >
                 <Image 
                   source={require('../../assets/mic.png')}
@@ -731,72 +732,53 @@ export default function PraticaExerciciosScreen({ route, navigation }) {
 
               {gravando && (
                 <View style={styles.gravandoBox}>
-                  <Text style={styles.gravandoText}>Ouvindo...</Text>
-                  <Text style={styles.gravandoSubtext}>Fale agora</Text>
+                  <Text style={styles.gravandoText}>🔴 GRAVANDO...</Text>
+                  <Text style={styles.gravandoSubtext}>Fale agora! Toque novamente para parar</Text>
+                  <View style={styles.pulseIndicator}>
+                    <View style={styles.pulse} />
+                  </View>
                 </View>
               )}
 
               {textoFalado && !gravando && (
                 <View style={styles.resultadoFala}>
-                  <Text style={styles.resultadoFalaLabel}>Voce disse:</Text>
+                  <Text style={styles.resultadoFalaLabel}>📝 Voce disse:</Text>
                   <Text style={styles.resultadoFalaTexto}>"{textoFalado}"</Text>
-                  
-                  <TouchableOpacity
-                    style={styles.verificarButton}
-                    onPress={() => {
-                      if (textoFalado.trim()) {
-                        verificarRespostaFalada(textoFalado);
-                      } else {
-                        Alert.alert('Aviso', 'Grave sua resposta primeiro!');
-                      }
-                    }}
-                  >
-                    <Text style={styles.verificarButtonText}>Verificar Resposta</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.gravarNovamenteButton}
-                    onPress={() => {
-                      setTextoFalado('');
-                      verificandoRef.current = false;
-                    }}
-                  >
-                    <Text style={styles.gravarNovamenteText}>Gravar Novamente</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.aguardandoText}>⏳ Verificando pronuncia...</Text>
                 </View>
               )}
             </View>
           </View>
         )}
 
-        {isReading && (
-          <View style={styles.questaoContainer}>
-            <View style={styles.cardPergunta}>
-              <Text style={styles.labelPergunta}>Complete a frase</Text>
-              <View style={styles.fraseBox}>
-                <Text style={styles.fraseTexto}>{questao.texto}</Text>
-              </View>
-            </View>
+      {isReading && (
+  <View style={styles.questaoContainer}>
+    <View style={styles.cardPergunta}>
+      <Text style={styles.labelPergunta}>Complete a frase</Text>
+      <View style={styles.fraseBox}>
+        <Text style={styles.fraseTexto}>{questao.texto}</Text>
+      </View>
+    </View>
 
-            <View style={styles.opcoesContainer}>
-              {questao.opcoes.map((opcao, index) => {
-                const letra = String.fromCharCode(65 + index);
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.opcaoButton}
-                    onPress={() => verificarResposta(opcao)}
-                  >
-                    <View style={styles.opcaoLetra}>
-                      <Text style={styles.opcaoLetraTexto}>{letra}</Text>
-                    </View>
-                    <Text style={styles.opcaoTexto}>{opcao}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+    <View style={styles.opcoesContainer}>
+      {questao.opcoes.map((opcao, index) => {
+        const letra = String.fromCharCode(65 + index);
+        return (
+          <TouchableOpacity
+            key={index}
+            style={styles.opcaoButton}
+            onPress={() => verificarResposta(opcao)}
+          >
+            <View style={styles.opcaoLetra}>
+              <Text style={styles.opcaoTexto}>{opcao}</Text>
             </View>
-          </View>
-        )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  </View>
+)}
+      
 
         {isListening && (
           <View style={styles.questaoContainer}>
@@ -933,6 +915,14 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginBottom: 30,
+  },
+  recomendacaoBox: {
+    backgroundColor: '#FFF8F0',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#A67649',
   },
   recomendacaoTitulo: {
     fontSize: 16,
@@ -1123,6 +1113,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
+  pulseIndicator: {
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  pulse: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#E74C3C',
+  },
   resultadoFala: {
     marginTop: 20,
     padding: 20,
@@ -1142,35 +1142,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 15,
   },
-  verificarButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 15,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    marginTop: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  verificarButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  gravarNovamenteButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#A67649',
-    borderRadius: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginTop: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  gravarNovamenteText: {
-    color: '#A67649',
+  aguardandoText: {
     fontSize: 14,
-    fontWeight: '600',
+    color: '#A67649',
+    fontWeight: '500',
+    fontStyle: 'italic',
   },
   opcoesContainer: {
     marginTop: 20,

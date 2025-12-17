@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,23 +25,19 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.viccavalcant3.EnglishAdventure",
+      "package": "com.viccavalcant33.EnglishAdventure",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "ACCESS_WIFI_STATE"
+        "ACCESS_WIFI_STATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/icon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "8a1aa592-a36e-4263-b083-8e45068b4895"
-      }
-    },
-    "owner": "vic-cavalcant3",
+    "owner": "vic-cavalcant33",
     "plugins": [
       "expo-speech-recognition",
       [
@@ -49,6 +49,11 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "72c9bbd1-b6b5-4f67-8dc4-70cc8f88c181"
+      }
+    }
   }
 }
